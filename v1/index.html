@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Air Space — ATC Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #050d1a;
+      color: #00ff88;
+      font-family: 'Courier New', Courier, monospace;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 16px;
+      border-bottom: 1px solid #0a3a1a;
+      background: #040c18;
+      flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 13px;
+      letter-spacing: 3px;
+      color: #00cc66;
+      text-transform: uppercase;
+    }
+
+    #clock {
+      font-size: 12px;
+      color: #00aa55;
+      letter-spacing: 2px;
+    }
+
+    #app {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    #radar-wrap {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #050d1a;
+    }
+
+    canvas#radar {
+      display: block;
+      cursor: crosshair;
+    }
+
+    #panel {
+      width: 230px;
+      flex-shrink: 0;
+      border-left: 1px solid #0a3a1a;
+      background: #040c18;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .panel-section {
+      padding: 12px;
+      border-bottom: 1px solid #0a3a1a;
+    }
+
+    .panel-section h2 {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #006633;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    #selected-info {
+      font-size: 12px;
+      color: #009944;
+      line-height: 1.8;
+    }
+
+    #selected-info .callsign {
+      font-size: 16px;
+      color: #00ff88;
+      font-weight: bold;
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+    }
+
+    #selected-info .stat {
+      display: flex;
+      justify-content: space-between;
+      color: #00aa55;
+    }
+
+    #selected-info .stat span:last-child {
+      color: #00ff88;
+    }
+
+    #no-selection {
+      color: #005522;
+      font-size: 11px;
+      font-style: italic;
+    }
+
+    .cmd-form {
+      margin-top: 10px;
+    }
+
+    .cmd-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+      gap: 6px;
+    }
+
+    .cmd-row label {
+      font-size: 10px;
+      color: #006633;
+      letter-spacing: 1px;
+      width: 32px;
+      flex-shrink: 0;
+    }
+
+    .cmd-row input {
+      flex: 1;
+      background: #0a1628;
+      border: 1px solid #0a4a22;
+      color: #00ff88;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      padding: 3px 6px;
+      outline: none;
+      min-width: 0;
+    }
+
+    .cmd-row input:focus {
+      border-color: #00ff88;
+    }
+
+    #issue-btn {
+      width: 100%;
+      margin-top: 4px;
+      padding: 6px;
+      background: #003311;
+      border: 1px solid #00aa55;
+      color: #00ff88;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      letter-spacing: 2px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+
+    #issue-btn:hover {
+      background: #004d1a;
+      border-color: #00ff88;
+    }
+
+    #issue-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    #conflicts-section {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+    }
+
+    #conflicts-section h2 {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #006633;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    .conflict-item {
+      font-size: 11px;
+      margin-bottom: 8px;
+      padding: 6px 8px;
+      border-left: 3px solid;
+      background: #040c18;
+    }
+
+    .conflict-item.warning {
+      border-color: #ffaa00;
+      color: #ffaa00;
+    }
+
+    .conflict-item.conflict {
+      border-color: #ff3333;
+      color: #ff5555;
+    }
+
+    .conflict-item .pair {
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+
+    .conflict-item .detail {
+      font-size: 10px;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+
+    #no-conflicts {
+      color: #005522;
+      font-size: 11px;
+      font-style: italic;
+    }
+
+    #legend {
+      padding: 10px 12px;
+      border-top: 1px solid #0a3a1a;
+      font-size: 10px;
+      color: #004422;
+      line-height: 1.9;
+    }
+
+    .legend-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 5px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>&#9992; Air Space Control</h1>
+    <div id="clock">--:--:-- UTC</div>
+  </header>
+  <div id="app">
+    <div id="radar-wrap">
+      <canvas id="radar"></canvas>
+    </div>
+    <div id="panel">
+      <div class="panel-section">
+        <h2>Selected</h2>
+        <div id="selected-info">
+          <div id="no-selection">Click a plane to select</div>
+          <div id="aircraft-detail" style="display:none">
+            <div class="callsign" id="detail-callsign"></div>
+            <div class="stat"><span>HDG</span><span id="detail-hdg"></span></div>
+            <div class="stat"><span>ALT</span><span id="detail-alt"></span></div>
+            <div class="stat"><span>SPD</span><span id="detail-spd"></span></div>
+            <div class="stat"><span>MODE</span><span id="detail-mode"></span></div>
+          </div>
+          <div class="cmd-form" id="cmd-form" style="display:none">
+            <div class="cmd-row">
+              <label>HDG</label>
+              <input id="cmd-hdg" type="number" min="1" max="360" placeholder="001-360" />
+            </div>
+            <div class="cmd-row">
+              <label>FL</label>
+              <input id="cmd-alt" type="number" min="180" max="450" placeholder="180-450" />
+            </div>
+            <div class="cmd-row">
+              <label>SPD</label>
+              <input id="cmd-spd" type="number" min="200" max="550" placeholder="200-550" />
+            </div>
+            <button id="issue-btn">Issue Command</button>
+          </div>
+        </div>
+      </div>
+      <div id="conflicts-section">
+        <h2>&#9888; Conflicts</h2>
+        <div id="conflict-list">
+          <div id="no-conflicts">No conflicts detected</div>
+        </div>
+      </div>
+      <div id="legend">
+        <span class="legend-dot" style="background:#00ff88"></span>Normal<br/>
+        <span class="legend-dot" style="background:#ffaa00"></span>Warning (&lt;8nm)<br/>
+        <span class="legend-dot" style="background:#ff3333"></span>Conflict (&lt;5nm)<br/>
+        <span class="legend-dot" style="background:#44aaff"></span>Under ATC control
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
