@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Air Space v2 — Airport ATC</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1a1a1a;
+      color: #ddd;
+      font-family: 'Courier New', Courier, monospace;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #app {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    #canvas-wrap {
+      flex: 1;
+      min-width: 0;       /* prevent flex child from overflowing at canvas natural size */
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #1a1a1a;
+    }
+
+    canvas#airport {
+      display: block;
+      cursor: default;
+      max-width: 100%;
+      max-height: 100%;
+    }
+
+    #panel {
+      width: 220px;
+      flex-shrink: 0;
+      border-left: 1px solid #333;
+      background: #111;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-section {
+      padding: 12px;
+      border-bottom: 1px solid #2a2a2a;
+    }
+
+    .panel-section h2 {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #666;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    #selected-info { font-size: 12px; color: #aaa; line-height: 1.8; }
+
+    #no-selection { color: #444; font-size: 11px; font-style: italic; }
+
+    #aircraft-detail { display: none; }
+
+    .callsign {
+      font-size: 15px;
+      color: #e8e8e8;
+      font-weight: bold;
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+    }
+
+    .stat { display: flex; justify-content: space-between; color: #888; }
+    .stat span:last-child { color: #ccc; }
+
+    .phase-badge {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 6px;
+      font-size: 10px;
+      border: 1px solid #555;
+      color: #aaa;
+      letter-spacing: 1px;
+    }
+
+    #action-buttons { margin-top: 10px; }
+
+    .action-btn {
+      display: block;
+      width: 100%;
+      margin-bottom: 5px;
+      padding: 6px 8px;
+      background: #1e2a1e;
+      border: 1px solid #3a5a3a;
+      color: #8aaa8a;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      text-align: left;
+      text-transform: uppercase;
+    }
+
+    .action-btn:hover { background: #2a3a2a; border-color: #6a8a6a; color: #ccc; }
+    .action-btn.primary { background: #2a2a1e; border-color: #7a7a3a; color: #aaaa8a; }
+    .action-btn.primary:hover { background: #3a3a2a; color: #eee; }
+    .action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    #runways-section { flex: 1; padding: 12px; overflow-y: auto; }
+    #runways-section h2 {
+      font-size: 10px; letter-spacing: 2px; color: #666;
+      margin-bottom: 10px; text-transform: uppercase;
+    }
+
+    .runway-status {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      font-size: 11px;
+      color: #888;
+    }
+
+    .rwy-badge {
+      padding: 2px 6px;
+      font-size: 10px;
+      letter-spacing: 1px;
+      border: 1px solid;
+    }
+
+    .rwy-badge.clear { border-color: #3a6a3a; color: #6aaa6a; }
+    .rwy-badge.occupied { border-color: #6a3a3a; color: #aa6a6a; }
+
+    #gates-section { padding: 12px; border-top: 1px solid #2a2a2a; }
+    #gates-section h2 {
+      font-size: 10px; letter-spacing: 2px; color: #666;
+      margin-bottom: 8px; text-transform: uppercase;
+    }
+
+    #gate-dots { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .gate-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: bold;
+      border: 1px solid #333;
+    }
+
+    .gate-dot.free { background: #1e3a1e; color: #6aaa6a; border-color: #3a6a3a; }
+    .gate-dot.occupied { background: #3a2a1e; color: #aa8a6a; border-color: #6a4a3a; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="canvas-wrap">
+      <canvas id="airport"></canvas>
+    </div>
+    <div id="panel">
+      <div class="panel-section">
+        <h2>Selected</h2>
+        <div id="selected-info">
+          <div id="no-selection">Click a plane to select</div>
+          <div id="aircraft-detail">
+            <div class="callsign" id="detail-callsign"></div>
+            <div class="stat"><span>Phase</span><span id="detail-phase"></span></div>
+            <div class="stat"><span>Speed</span><span id="detail-speed"></span></div>
+            <div class="stat"><span>Runway</span><span id="detail-runway"></span></div>
+            <div class="stat"><span>Gate</span><span id="detail-gate"></span></div>
+            <div id="action-buttons"></div>
+          </div>
+        </div>
+      </div>
+      <div id="runways-section">
+        <h2>Runways</h2>
+        <div id="runway-list"></div>
+      </div>
+      <div id="gates-section">
+        <h2>Gates</h2>
+        <div id="gate-dots"></div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

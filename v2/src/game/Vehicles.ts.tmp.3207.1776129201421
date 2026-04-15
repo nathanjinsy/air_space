@@ -1,0 +1,100 @@
+import type { Vehicle } from '../types'
+import { APRON_Y, APRON_H, MARGIN_X, RUNWAY_LENGTH, CARGO_APRON_Y, CARGO_APRON_H } from '../constants'
+
+// ---------------------------------------------------------------------------
+// Vehicle factory
+// ---------------------------------------------------------------------------
+
+let vIdCounter = 0
+function vid(): string { return `v${++vIdCounter}` }
+
+const APRON_CENTER = APRON_Y + APRON_H / 2
+const CARGO_CENTER = CARGO_APRON_Y + CARGO_APRON_H / 2
+const LEFT  = MARGIN_X + 20
+const RIGHT = MARGIN_X + RUNWAY_LENGTH - 20
+
+export function makeVehicles(): Vehicle[] {
+  return [
+    // — Fuel trucks (orange) — patrol full apron width in two halves
+    {
+      id: vid(), type: 'fuel_truck',
+      x: LEFT, y: APRON_CENTER, heading: 90, speed: 14,
+      patrolMin: LEFT, patrolMax: Math.round(LEFT + (RIGHT - LEFT) * 0.52),
+      color: '#c87820',
+    },
+    {
+      id: vid(), type: 'fuel_truck',
+      x: RIGHT, y: APRON_CENTER, heading: 270, speed: 14,
+      patrolMin: Math.round(LEFT + (RIGHT - LEFT) * 0.48), patrolMax: RIGHT,
+      color: '#c87820',
+    },
+
+    // — Baggage carts (yellow) — shorter patrol segments near gate clusters
+    {
+      id: vid(), type: 'baggage_cart',
+      x: LEFT + 120, y: APRON_CENTER + 4, heading: 90, speed: 22,
+      patrolMin: LEFT + 80,  patrolMax: LEFT + 380,
+      color: '#b8a020',
+    },
+    {
+      id: vid(), type: 'baggage_cart',
+      x: LEFT + 600, y: APRON_CENTER + 4, heading: 270, speed: 22,
+      patrolMin: LEFT + 480, patrolMax: LEFT + 780,
+      color: '#b8a020',
+    },
+    {
+      id: vid(), type: 'baggage_cart',
+      x: RIGHT - 160, y: APRON_CENTER + 4, heading: 90, speed: 22,
+      patrolMin: RIGHT - 360, patrolMax: RIGHT - 60,
+      color: '#b8a020',
+    },
+
+    // — Pushback tugs (dark gold) — slow, near gate area
+    {
+      id: vid(), type: 'tug',
+      x: LEFT + 280, y: APRON_CENTER - 4, heading: 90, speed: 9,
+      patrolMin: LEFT + 180, patrolMax: LEFT + 520,
+      color: '#7a6010',
+    },
+    {
+      id: vid(), type: 'tug',
+      x: LEFT + 800, y: APRON_CENTER - 4, heading: 270, speed: 9,
+      patrolMin: LEFT + 640, patrolMax: LEFT + 960,
+      color: '#7a6010',
+    },
+
+    // — Cargo vehicles on the cargo apron —
+    {
+      id: vid(), type: 'fuel_truck',
+      x: LEFT + 200, y: CARGO_CENTER, heading: 90, speed: 11,
+      patrolMin: LEFT + 100, patrolMax: LEFT + 600,
+      color: '#c87820',
+    },
+    {
+      id: vid(), type: 'baggage_cart',
+      x: LEFT + 700, y: CARGO_CENTER, heading: 270, speed: 18,
+      patrolMin: LEFT + 500, patrolMax: RIGHT - 100,
+      color: '#b8a020',
+    },
+  ]
+}
+
+export function updateVehicles(vehicles: Vehicle[], dt: number): void {
+  for (const v of vehicles) {
+    v.x += (v.heading === 90 ? 1 : -1) * v.speed * dt
+    if (v.x >= v.patrolMax) {
+      v.x = v.patrolMax
+      v.heading = 270
+    } else if (v.x <= v.patrolMin) {
+      v.x = v.patrolMin
+      v.heading = 90
+    }
+  }
+}
+
+export function resetVehicles(vehicles: Vehicle[]): void {
+  vIdCounter = 0
+  const fresh = makeVehicles()
+  vehicles.length = 0
+  vehicles.push(...fresh)
+}
