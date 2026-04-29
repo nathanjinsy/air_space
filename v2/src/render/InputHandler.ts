@@ -1,5 +1,4 @@
 import type { GameState } from '../types'
-import { resetWorld } from '../game/World'
 import { PLANE_LENGTH } from '../constants'
 
 const HIT_RADIUS = Math.max(PLANE_LENGTH, 20)
@@ -14,11 +13,6 @@ export function setupInput(
     const scaleY = canvas.height / rect.height
     const mx = (e.clientX - rect.left) * scaleX
     const my = (e.clientY - rect.top) * scaleY
-
-    if (state.gameOver) {
-      resetWorld(state)
-      return
-    }
 
     // Hit-test planes
     let hit: string | null = null

@@ -3,6 +3,7 @@ import { makeRunways, makeGates } from './Airport'
 import { updateAircraft } from './Aircraft'
 import { detectCrash } from './ConflictDetector'
 import { tickSpawner, initSpawnTimer, releaseCallsign, resetSpawner } from './Spawner'
+import { makeVehicles, updateVehicles } from './Vehicles'
 import { SCORE_GOAROUND, CANVAS_W } from '../constants'
 
 export function createWorld(): GameState {
@@ -10,9 +11,10 @@ export function createWorld(): GameState {
     aircraft: [],
     runways: makeRunways(),
     gates: makeGates(),
+    vehicles: makeVehicles(),
     score: 0,
-    gameOver: false,
     crashPosition: null,
+    crashFlashTimer: 0,
     selectedId: null,
     spawnTimer: 0,
   }
@@ -25,18 +27,26 @@ export function resetWorld(state: GameState): void {
   state.aircraft = []
   state.runways = makeRunways()
   state.gates = makeGates()
+  state.vehicles = makeVehicles()
   state.score = 0
-  state.gameOver = false
   state.crashPosition = null
+  state.crashFlashTimer = 0
   state.selectedId = null
   initSpawnTimer(state)
 }
 
 export function updateWorld(state: GameState, dt: number): void {
-  if (state.gameOver) return
+  // Tick down crash flash timer
+  if (state.crashFlashTimer > 0) {
+    state.crashFlashTimer = Math.max(0, state.crashFlashTimer - dt * 1000)
+    if (state.crashFlashTimer === 0) state.crashPosition = null
+  }
 
   // Tick spawner
   tickSpawner(state, dt)
+
+  // Move ground vehicles
+  updateVehicles(state.vehicles, dt)
 
   // Update each aircraft
   for (const ac of state.aircraft) {

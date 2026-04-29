@@ -1,6 +1,9 @@
 import type { Aircraft } from '../types'
 import { C, PLANE_LENGTH, PLANE_WINGSPAN } from '../constants'
 
+// Nose offset from aircraft center (half the fuselage length, local −y = north)
+const NOSE_OFFSET = PLANE_LENGTH / 2
+
 const PHASE_LABELS: Partial<Record<string, string>> = {
   approaching:       'APPR',
   cleared_to_land:   'CLR',
@@ -8,8 +11,11 @@ const PHASE_LABELS: Partial<Record<string, string>> = {
   vacating:          'VAC',
   taxiing_to_gate:   'TAXI',
   at_gate:           'GATE',
+  pushing_back:      'PUSH',
   taxiing_to_runway: 'TAXI',
   holding_short:     'HOLD',
+  lining_up:         'L/U',
+  lined_up:          'RDY',
   taking_off:        'T/O',
 }
 
@@ -70,6 +76,11 @@ function drawPlane(
 
   ctx.restore()
 
+  // Pushback tug — attached to aircraft nose during at_gate and pushing_back
+  if (ac.phase === 'at_gate' || ac.phase === 'pushing_back') {
+    drawPushbackTug(ctx, ac)
+  }
+
   // Label (drawn in screen space, not rotated)
   drawLabel(ctx, ac, isSelected)
 }
@@ -127,6 +138,48 @@ function drawPlaneShape(
     ctx.fillRect(-4, -hl * 0.3, 8, hl * 0.5)
     ctx.globalAlpha = 1
   }
+}
+
+/**
+ * Draw a pushback tug at the aircraft's nose position (world space).
+ * The tug is always just north of the nose since parked aircraft at a gate
+ * always face north (heading ≈ 0°).
+ */
+function drawPushbackTug(ctx: CanvasRenderingContext2D, ac: Aircraft): void {
+  // The renderer rotates local -y to point in the heading direction.
+  // In world space, the nose offset vector is (+sin θ, -cos θ) where θ = heading in radians.
+  // heading=0° (north): nose at (ac.x, ac.y - NOSE_OFFSET)  ✓ (toward terminal)
+  // heading=90° (east): nose at (ac.x + NOSE_OFFSET, ac.y)  ✓
+  const rad = (ac.heading * Math.PI) / 180
+  const nx = Math.sin(rad)
+  const ny = -Math.cos(rad)
+
+  const noseX = ac.x + nx * NOSE_OFFSET
+  const noseY = ac.y + ny * NOSE_OFFSET
+
+  // Tug sits 8px further beyond the nose
+  const tugX = ac.x + nx * (NOSE_OFFSET + 8)
+  const tugY = ac.y + ny * (NOSE_OFFSET + 8)
+
+  // Towbar (thin line from nose to tug)
+  ctx.strokeStyle = '#888'
+  ctx.lineWidth = 1.5
+  ctx.beginPath()
+  ctx.moveTo(noseX, noseY)
+  ctx.lineTo(tugX, tugY)
+  ctx.stroke()
+
+  // Tug body (small yellow vehicle)
+  ctx.save()
+  ctx.translate(tugX, tugY)
+  ctx.fillStyle = '#d4a010'
+  ctx.fillRect(-5, -3, 10, 6)   // body
+  ctx.fillStyle = '#9a7010'
+  ctx.fillRect(-4, -4, 8, 2)    // roof/cab
+  ctx.fillStyle = '#111'
+  ctx.fillRect(-4, 3, 3, 2)     // rear wheels
+  ctx.fillRect(1, 3, 3, 2)      // front wheels
+  ctx.restore()
 }
 
 function drawLabel(

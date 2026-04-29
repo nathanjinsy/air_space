@@ -2,6 +2,7 @@ import { createWorld, updateWorld } from './game/World'
 import { createGameLoop } from './game/GameLoop'
 import { getAirportCanvas } from './render/AirportRenderer'
 import { renderAircraft } from './render/AircraftRenderer'
+import { renderVehicles } from './render/VehicleRenderer'
 import { renderUI } from './render/UIRenderer'
 import { getPanelElements, updateSidePanel } from './render/SidePanel'
 import { setupInput } from './render/InputHandler'
@@ -46,6 +47,9 @@ const loop = createGameLoop((dt) => {
 
   // Draw airport background
   ctx.drawImage(airportBg, 0, 0)
+
+  // Draw ground vehicles (below aircraft)
+  renderVehicles(ctx, state.vehicles)
 
   // Draw aircraft
   renderAircraft(ctx, state.aircraft, state.selectedId)

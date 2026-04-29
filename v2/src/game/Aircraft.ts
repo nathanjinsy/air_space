@@ -2,12 +2,12 @@ import type { Aircraft, Point, Runway, GameState } from '../types'
 import {
   APPROACH_SPEED, TAXI_SPEED, TAKEOFF_SPEED,
   LANDING_DECEL, TURN_SPEED_DEG, TAXI_TURN_SPEED_DEG, WAYPOINT_REACH_PX,
-  BOARDING_TIME_MS, SCORE_LAND, SCORE_TAKEOFF,
-  TAXIWAY_ALPHA_Y, TAXIWAY_H,
+  BOARDING_TIME_MS, SCORE_LAND, SCORE_TAKEOFF, SCORE_GOAROUND,
+  TAXIWAY_ALPHA_Y, TAXIWAY_H, CANVAS_W, MARGIN_X,
 } from '../constants'
 import {
   vacatePath, vacateArrivalX, taxiPathToGate, taxiPathToRunway,
-  takeoffPath, findRunwayById, findGateById,
+  takeoffPath, lineUpPath, crossRunwayPath, findRunwayById, findGateById,
 } from './Airport'
 
 // ---------------------------------------------------------------------------
@@ -105,36 +105,72 @@ export function updateAircraft(ac: Aircraft, dt: number, state: GameState): numb
       ac.boardingTimer -= dt * 1000
       if (ac.boardingTimer <= 0) {
         ac.boardingTimer = 0
+        // Begin pushback — tug will push aircraft backward (south) to taxiway
+        ac.phase = 'pushing_back'
+        ac.speed = TAXI_SPEED * 0.6  // pushback is slow
+      }
+      break
+
+    case 'pushing_back': {
+      // Move backward (opposite to current heading) until reaching Taxiway Alpha
+      movePushback(ac, dt)
+      const alphaY = TAXIWAY_ALPHA_Y + TAXIWAY_H / 2
+      if (ac.y >= alphaY) {
+        ac.y = alphaY
         ac.phase = 'taxiing_to_runway'
         ac.speed = TAXI_SPEED
         const runway = findRunwayById(state.runways, ac.assignedRunway ?? '')
         const gate = ac.assignedGate ? findGateById(state.gates, ac.assignedGate) : undefined
         if (runway && gate) {
-          ac.waypoints = taxiPathToRunway(gate, runway, ac.fromRight)
+          // taxiPathToRunway starts from gate pos → alpha; we're already at alpha
+          // so skip the first two waypoints (gate-pos and alpha-at-gate-x)
+          ac.waypoints = taxiPathToRunway(gate, runway, ac.fromRight).slice(2)
         } else if (runway) {
-          // No gate position — go straight to hold-short from current location
           const holdX = ac.fromRight
             ? runway.thresholdRight.x - 20
             : runway.thresholdLeft.x + 20
           ac.waypoints = [
-            { x: ac.x, y: TAXIWAY_ALPHA_Y + TAXIWAY_H / 2 },
-            { x: holdX, y: TAXIWAY_ALPHA_Y + TAXIWAY_H / 2 },
+            { x: holdX, y: alphaY },
             { x: holdX, y: runway.centerY },
           ]
         }
       }
       break
+    }
 
-    case 'taxiing_to_runway':
+    case 'taxiing_to_runway': {
+      // When one waypoint remains the aircraft is at the taxiway/runway boundary —
+      // the stopbar position.  Hold here while the runway is occupied so the
+      // plane doesn't taxi through a lit stopbar onto an active runway.
+      if (ac.waypoints.length === 1) {
+        const rwy = findRunwayById(state.runways, ac.assignedRunway ?? '')
+        if (rwy && rwy.status === 'occupied') {
+          ac.speed = 0   // hold at stopbar; resume automatically when clear
+          break
+        }
+      }
       moveTowardWaypoint(ac, dt, TAXI_SPEED, TAXI_TURN_SPEED_DEG)
       if (ac.waypoints.length === 0) {
         ac.phase = 'holding_short'
         ac.speed = 0
       }
       break
+    }
 
     case 'holding_short':
-      // Player must issue takeoff clearance — handled by InputHandler
+      // Waiting for player command: line up, cross, or direct takeoff clearance
+      break
+
+    case 'lining_up':
+      moveTowardWaypoint(ac, dt, TAXI_SPEED, TAXI_TURN_SPEED_DEG)
+      if (ac.waypoints.length === 0) {
+        ac.phase = 'lined_up'
+        ac.speed = 0
+      }
+      break
+
+    case 'lined_up':
+      // On runway at threshold — waiting for takeoff clearance
       break
 
     case 'taking_off': {
@@ -201,6 +237,13 @@ function moveForward(ac: Aircraft, dt: number): void {
   ac.y += Math.sin(rad) * ac.speed * dt
 }
 
+/** Move opposite to heading — used for pushback from gate. Heading stays fixed. */
+function movePushback(ac: Aircraft, dt: number): void {
+  const rad = ((ac.heading - 90) * Math.PI) / 180
+  ac.x -= Math.cos(rad) * ac.speed * dt
+  ac.y -= Math.sin(rad) * ac.speed * dt
+}
+
 // ---------------------------------------------------------------------------
 // Public actions
 // ---------------------------------------------------------------------------
@@ -220,12 +263,16 @@ export function assignRunway(ac: Aircraft, runway: Runway, _state: GameState): v
 }
 
 export function clearForTakeoff(ac: Aircraft, state: GameState): void {
-  if (ac.phase !== 'holding_short') return
+  if (ac.phase !== 'holding_short' && ac.phase !== 'lined_up') return
   const runway = findRunwayById(state.runways, ac.assignedRunway!)
   if (!runway) return
 
-  runway.status = 'occupied'
-  runway.occupiedBy = ac.id
+  if (ac.phase === 'holding_short') {
+    // Mark runway occupied (lined_up already did this)
+    runway.status = 'occupied'
+    runway.occupiedBy = ac.id
+  }
+
   ac.phase = 'taking_off'
   ac.speed = TAXI_SPEED
 
@@ -237,4 +284,32 @@ export function clearForTakeoff(ac: Aircraft, state: GameState): void {
   }
 
   ac.waypoints = takeoffPath(runway, !ac.fromRight)  // depart opposite direction
+}
+
+/** Line up and wait: enter the runway, position at threshold facing departure direction. */
+export function lineUp(ac: Aircraft, state: GameState): void {
+  if (ac.phase !== 'holding_short') return
+  const runway = findRunwayById(state.runways, ac.assignedRunway!)
+  if (!runway || runway.status === 'occupied') return
+
+  runway.status = 'occupied'
+  runway.occupiedBy = ac.id
+  ac.phase = 'lining_up'
+  ac.speed = TAXI_SPEED
+  ac.waypoints = lineUpPath(runway, ac.fromRight)
+}
+
+/** Cross: route to the other runway via end-connector, re-hold-short there. */
+export function crossRunway(ac: Aircraft, state: GameState): void {
+  if (ac.phase !== 'holding_short') return
+  const srcRunway = findRunwayById(state.runways, ac.assignedRunway!)
+  if (!srcRunway) return
+  const dstRunway = state.runways.find(r => r.id !== srcRunway.id)
+  if (!dstRunway) return
+
+  // Reassign to the other runway — will hold short there after crossing
+  ac.assignedRunway = dstRunway.id
+  ac.phase = 'taxiing_to_runway'
+  ac.speed = TAXI_SPEED
+  ac.waypoints = crossRunwayPath(ac.fromRight, srcRunway, dstRunway)
 }

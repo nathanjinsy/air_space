@@ -134,3 +134,6 @@ export const SPAWN_SCORE_STEP = 6    // score points per 1s reduction (slower ra
 export const SCORE_LAND    = 10
 export const SCORE_TAKEOFF = 10
 export const SCORE_GOAROUND = -5
+export const SCORE_CRASH   = -30  // per collision
+
+export const CRASH_FLASH_MS = 1600  // ms the crash ring stays visible

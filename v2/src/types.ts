@@ -9,6 +9,10 @@ export type FlightPhase =
   | 'at_gate'
   | 'taxiing_to_runway'
   | 'holding_short'
+  | 'lining_up'       // taxiing onto runway to threshold position
+  | 'lined_up'        // on runway, waiting for takeoff clearance
+  | 'pushing_back'    // tug pushing aircraft backward from gate to taxiway
+  | 'going_around'    // aborting approach; exiting screen to re-enter from opposite side
   | 'taking_off'
   | 'departed'
 
@@ -66,8 +70,8 @@ export interface GameState {
   gates: Gate[]
   vehicles: Vehicle[]
   score: number
-  gameOver: boolean
   crashPosition: Point | null
+  crashFlashTimer: number  // ms remaining for crash flash effect (0 = no flash)
   selectedId: string | null
   spawnTimer: number     // ms until next spawn
 }

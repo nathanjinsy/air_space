@@ -171,6 +171,63 @@ export function taxiPathToRunway(gate: Gate, runway: Runway, fromRight: boolean)
 }
 
 // ---------------------------------------------------------------------------
+// Line-up path — from hold-short, move onto runway facing the departure direction
+// ---------------------------------------------------------------------------
+
+/**
+ * The aircraft is currently at (holdX, runway.centerY).  Move it 50 px further
+ * in the departure direction so that:
+ *   - fromRight=false → heading east (90°) — ready to depart right
+ *   - fromRight=true  → heading west (270°) — ready to depart left
+ */
+export function lineUpPath(runway: Runway, fromRight: boolean): Point[] {
+  if (!fromRight) {
+    return [{ x: RWY_LEFT_X + 50, y: runway.centerY }]
+  } else {
+    return [{ x: RWY_RIGHT_X - 50, y: runway.centerY }]
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Cross path — route from one runway's hold-short to the other runway's
+// hold-short via the end-connector taxiway (no grass or runway crossings)
+// ---------------------------------------------------------------------------
+
+export function crossRunwayPath(
+  fromRight: boolean,
+  sourceRunway: Runway,
+  targetRunway: Runway,
+): Point[] {
+  const connX = fromRight ? CONNECTOR_RIGHT_X : CONNECTOR_LEFT_X
+  const srcHoldX = fromRight
+    ? sourceRunway.thresholdRight.x - HOLD_SHORT_OFFSET
+    : sourceRunway.thresholdLeft.x  + HOLD_SHORT_OFFSET
+  const dstHoldX = fromRight
+    ? targetRunway.thresholdRight.x - HOLD_SHORT_OFFSET
+    : targetRunway.thresholdLeft.x  + HOLD_SHORT_OFFSET
+
+  if (isUpperRunway(sourceRunway)) {
+    // Upper → Lower: back north to Alpha, connector south to Bravo, east/west to target
+    return [
+      { x: srcHoldX, y: ALPHA_Y },
+      { x: connX,    y: ALPHA_Y },
+      { x: connX,    y: BRAVO_Y },
+      { x: dstHoldX, y: BRAVO_Y },
+      { x: dstHoldX, y: targetRunway.centerY },
+    ]
+  } else {
+    // Lower → Upper: back south to Bravo, connector north to Alpha, east/west to target
+    return [
+      { x: srcHoldX, y: BRAVO_Y },
+      { x: connX,    y: BRAVO_Y },
+      { x: connX,    y: ALPHA_Y },
+      { x: dstHoldX, y: ALPHA_Y },
+      { x: dstHoldX, y: targetRunway.centerY },
+    ]
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Takeoff path — accelerate down runway and off screen
 // ---------------------------------------------------------------------------
 export function takeoffPath(runway: Runway, fromRight: boolean): Point[] {

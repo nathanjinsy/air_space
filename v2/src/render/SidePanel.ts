@@ -1,5 +1,5 @@
 import type { GameState, Aircraft } from '../types'
-import { assignRunway, clearForTakeoff } from '../game/Aircraft'
+import { assignRunway, clearForTakeoff, lineUp, crossRunway } from '../game/Aircraft'
 
 export interface PanelElements {
   noSelection: HTMLElement
@@ -105,13 +105,40 @@ function buildActionButtons(container: HTMLElement, ac: Aircraft, state: GameSta
   if (ac.phase === 'holding_short') {
     const rwy = state.runways.find(r => r.id === ac.assignedRunway || r.reciprocal === ac.assignedRunway)
     const clear = !rwy || rwy.status === 'available'
+    const rwyLabel = ac.fromRight ? rwy?.reciprocal : rwy?.id
+
+    // Line up and wait
+    const luBtn = document.createElement('button')
+    luBtn.className = 'action-btn'
+    luBtn.textContent = `↕ Line Up ${rwyLabel ?? ''}`
+    luBtn.disabled = !clear
+    luBtn.addEventListener('click', () => lineUp(ac, state))
+    container.appendChild(luBtn)
+
+    // Cross to other runway
+    const otherRwy = state.runways.find(r => r.id !== rwy?.id)
+    const crossLabel = otherRwy ? (ac.fromRight ? otherRwy.reciprocal : otherRwy.id) : '?'
+    const crBtn = document.createElement('button')
+    crBtn.className = 'action-btn'
+    crBtn.textContent = `↔ Cross → ${crossLabel}`
+    crBtn.addEventListener('click', () => crossRunway(ac, state))
+    container.appendChild(crBtn)
+
+    // Direct takeoff clearance
+    const toBtn = document.createElement('button')
+    toBtn.className = 'action-btn primary'
+    toBtn.textContent = `✈ Cleared for Takeoff`
+    toBtn.disabled = !clear
+    toBtn.addEventListener('click', () => clearForTakeoff(ac, state))
+    container.appendChild(toBtn)
+  }
+
+  // Already lined up on runway — only takeoff clearance needed
+  if (ac.phase === 'lined_up') {
     const btn = document.createElement('button')
     btn.className = 'action-btn primary'
     btn.textContent = `✈ Cleared for Takeoff`
-    btn.disabled = !clear
-    btn.addEventListener('click', () => {
-      clearForTakeoff(ac, state)
-    })
+    btn.addEventListener('click', () => clearForTakeoff(ac, state))
     container.appendChild(btn)
   }
 }

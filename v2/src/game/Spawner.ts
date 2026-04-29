@@ -29,8 +29,6 @@ export function initSpawnTimer(state: GameState): void {
 }
 
 export function tickSpawner(state: GameState, dt: number): void {
-  if (state.gameOver) return
-
   state.spawnTimer -= dt * 1000
   if (state.spawnTimer > 0) return
 

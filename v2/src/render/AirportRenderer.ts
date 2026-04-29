@@ -5,7 +5,7 @@ import {
   TAXIWAY_ALPHA_Y, TAXIWAY_H, TAXIWAY_BRAVO_Y,
   RWY_UPPER_Y, RWY_LOWER_Y, RWY_H,
   GRASS_STRIP_Y, GRASS_STRIP_H,
-  RWY_LEFT_X, RWY_RIGHT_X,
+  RWY_LEFT_X, RWY_RIGHT_X, HOLD_SHORT_OFFSET,
   CONNECTOR_LEFT_X, CONNECTOR_RIGHT_X,
   CARGO_TAX_Y, CARGO_TAX_H, CARGO_APRON_Y, CARGO_APRON_H,
   CARGO_BLDG_Y, CARGO_BLDG_H, CARGO_STAND_COUNT,
@@ -68,6 +68,9 @@ function drawAirport(ctx: CanvasRenderingContext2D): void {
 
   // 11. Cargo area (south end)
   drawCargoArea(ctx)
+
+  // 12. Stopbar markings at each taxiway-runway entry point (static dim red paint)
+  drawStopbars(ctx)
 }
 
 // ---------------------------------------------------------------------------
@@ -302,6 +305,32 @@ function drawConnectors(ctx: CanvasRenderingContext2D): void {
   ctx.moveTo(CONNECTOR_RIGHT_X, topY);    ctx.lineTo(CONNECTOR_RIGHT_X, bottomY)
   ctx.stroke()
   ctx.setLineDash([])
+}
+
+/**
+ * Stopbar lights at each taxiway/runway entry point.
+ * Drawn as dim red bars in the static canvas; UIRenderer overlays bright red
+ * when the corresponding runway is occupied.
+ *
+ * Entry points on taxiway:
+ *   Alpha/upper-runway boundary: y = RWY_UPPER_Y
+ *   Lower-runway/Bravo boundary: y = TAXIWAY_BRAVO_Y
+ * at x = RWY_LEFT_X + HOLD_SHORT_OFFSET (left side)
+ * and x = RWY_RIGHT_X - HOLD_SHORT_OFFSET (right side)
+ */
+function drawStopbars(ctx: CanvasRenderingContext2D): void {
+  const leftX  = RWY_LEFT_X  + HOLD_SHORT_OFFSET
+  const rightX = RWY_RIGHT_X - HOLD_SHORT_OFFSET
+  const hw = 13   // half-width of each bar cluster
+  const bH = 3    // bar height
+
+  ctx.fillStyle = 'rgba(160, 30, 30, 0.55)'
+  // Upper runway entry (from Taxiway Alpha)
+  ctx.fillRect(leftX  - hw, RWY_UPPER_Y - 1, hw * 2, bH)
+  ctx.fillRect(rightX - hw, RWY_UPPER_Y - 1, hw * 2, bH)
+  // Lower runway entry (from Taxiway Bravo)
+  ctx.fillRect(leftX  - hw, TAXIWAY_BRAVO_Y - 1, hw * 2, bH)
+  ctx.fillRect(rightX - hw, TAXIWAY_BRAVO_Y - 1, hw * 2, bH)
 }
 
 function drawThresholdBars(
