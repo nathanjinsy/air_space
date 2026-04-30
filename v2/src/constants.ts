@@ -49,8 +49,8 @@ export const CARGO_BLDG_Y       = CARGO_APRON_Y + CARGO_APRON_H
 export const CARGO_BLDG_H       = 52
 export const CARGO_STAND_COUNT  = 3
 
-// Gates (5 evenly spaced along terminal south face)
-export const GATE_COUNT = 5
+// Gates (3 evenly spaced along terminal south face)
+export const GATE_COUNT = 3
 export const GATE_Y = APRON_Y + APRON_H / 2   // center of apron
 export const GATE_SPACING = RUNWAY_LENGTH / (GATE_COUNT + 1)
 
@@ -79,7 +79,7 @@ export const C = {
   taxiCenter:   '#c8960a',  // yellow taxiway centerline
   apron:        '#585858',
   terminal:     '#7a6a5a',
-  terminalRoof: '#5a4a3a',
+  terminalRoof: '#c8b8a8',
   terminalWin:  '#8aaccc',  // muted blue window tint
   jetway:       '#6a5a4a',
   planeBody:    '#f0f0f0',
@@ -108,17 +108,17 @@ export const CRASH_DIST_PX = 24      // planes closer than this = crash
 export const PLANE_LENGTH = 36       // fuselage length px
 export const PLANE_WINGSPAN = 30     // total wingspan px
 
-// Livery palette (muted airline colors)
+// Livery palette — regional carriers (muted tones)
 export const LIVERY_COLORS = [
-  '#4a6fa5', '#8b3a3a', '#3a7a5a',
-  '#7a6a3a', '#5a3a7a', '#3a5a7a',
+  '#3a5a8a', '#8a3a3a', '#2a6a4a',
+  '#7a5a2a', '#6a3a6a', '#3a6a6a',
 ]
 
-// Callsign pool
+// Callsign pool — regional carriers
 export const CALLSIGNS = [
-  'UAL301','DAL487','AAL552','SWA819','JBU144','FFT211',
-  'UAL709','DAL012','AAL831','SWA204','JBU377','SKW491',
-  'UAL556','DAL228','AAL103','SWA661','JBU822','ASA740',
+  'SKW491','SKW228','QXE201','QXE509','RPA342','RPA118',
+  'ASH603','ASH714','ENY334','ENY821','CPZ156','CPZ482',
+  'PDT293','PDT607','JIA449','JIA072','GJS814','SIL261',
 ]
 
 // ---------------------------------------------------------------------------
