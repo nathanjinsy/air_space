@@ -11,7 +11,7 @@ export const MARGIN_X = 40          // left/right grass border
 export const RUNWAY_LENGTH = CANVAS_W - MARGIN_X * 2
 
 // Terminal
-export const TERMINAL_Y = 10
+export const TERMINAL_Y = 52
 export const TERMINAL_H = 80
 export const TERMINAL_X = MARGIN_X
 export const TERMINAL_W = RUNWAY_LENGTH
@@ -48,6 +48,13 @@ export const CARGO_APRON_H      = 40
 export const CARGO_BLDG_Y       = CARGO_APRON_Y + CARGO_APRON_H
 export const CARGO_BLDG_H       = 52
 export const CARGO_STAND_COUNT  = 3
+
+// Access road (north face of terminal — y=0 to TERMINAL_Y)
+export const ROAD_VERGE_H    = 6                                   // grass verge at very top
+export const ROAD_SIDEWALK_H = 5                                   // curb at terminal face
+export const ROAD_DRIVE_H    = TERMINAL_Y - ROAD_VERGE_H - ROAD_SIDEWALK_H
+export const ROAD_UPPER_Y    = Math.round(ROAD_VERGE_H + ROAD_DRIVE_H * 0.25) // arriving lane
+export const ROAD_LOWER_Y    = Math.round(ROAD_VERGE_H + ROAD_DRIVE_H * 0.75) // departing lane
 
 // Gates (3 evenly spaced along terminal south face)
 export const GATE_COUNT = 3

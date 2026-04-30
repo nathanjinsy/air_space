@@ -1,5 +1,6 @@
 import {
   CANVAS_W, CANVAS_H, MARGIN_X, RUNWAY_LENGTH,
+  ROAD_VERGE_H, ROAD_SIDEWALK_H, ROAD_DRIVE_H, ROAD_UPPER_Y, ROAD_LOWER_Y,
   TERMINAL_X, TERMINAL_Y, TERMINAL_W, TERMINAL_H,
   APRON_Y, APRON_H,
   TAXIWAY_ALPHA_Y, TAXIWAY_H, TAXIWAY_BRAVO_Y,
@@ -38,6 +39,9 @@ function drawAirport(ctx: CanvasRenderingContext2D): void {
 
   // 2. Tree clusters (seeded pseudo-random)
   drawTrees(ctx)
+
+  // 2b. Access road along north face of terminal (landside)
+  drawAccessRoad(ctx)
 
   // 3. Apron (concrete behind terminal)
   ctx.fillStyle = C.apron
@@ -112,6 +116,37 @@ function drawTrees(ctx: CanvasRenderingContext2D): void {
   }
 }
 
+function drawAccessRoad(ctx: CanvasRenderingContext2D): void {
+  const medianH = 4
+  const medianY = ROAD_VERGE_H + Math.round((ROAD_DRIVE_H - medianH) / 2)
+
+  // Grass verge at top edge
+  ctx.fillStyle = C.grass
+  ctx.fillRect(0, 0, CANVAS_W, ROAD_VERGE_H)
+
+  // Road surface
+  ctx.fillStyle = '#383838'
+  ctx.fillRect(0, ROAD_VERGE_H, CANVAS_W, ROAD_DRIVE_H)
+
+  // Lane guide lines (dashed white) at each lane centre
+  ctx.strokeStyle = 'rgba(230,230,200,0.65)'
+  ctx.lineWidth = 1
+  ctx.setLineDash([18, 12])
+  ctx.beginPath()
+  ctx.moveTo(MARGIN_X, ROAD_UPPER_Y); ctx.lineTo(CANVAS_W - MARGIN_X, ROAD_UPPER_Y)
+  ctx.moveTo(MARGIN_X, ROAD_LOWER_Y); ctx.lineTo(CANVAS_W - MARGIN_X, ROAD_LOWER_Y)
+  ctx.stroke()
+  ctx.setLineDash([])
+
+  // Yellow median divider
+  ctx.fillStyle = '#c8960a'
+  ctx.fillRect(MARGIN_X, medianY, CANVAS_W - MARGIN_X * 2, medianH)
+
+  // Sidewalk / kerb at terminal face
+  ctx.fillStyle = '#a09880'
+  ctx.fillRect(0, TERMINAL_Y - ROAD_SIDEWALK_H, CANVAS_W, ROAD_SIDEWALK_H)
+}
+
 function drawTerminal(ctx: CanvasRenderingContext2D): void {
   // Main body
   ctx.fillStyle = C.terminal
@@ -129,12 +164,12 @@ function drawTerminal(ctx: CanvasRenderingContext2D): void {
     ctx.fillRect(wx, winY, winW, winH)
   }
 
-  // Small control tower on the right end
+  // Small control tower on the right end — rises from y=0 through the road
   const twX = TERMINAL_X + TERMINAL_W - 28
   ctx.fillStyle = '#9a8a78'
-  ctx.fillRect(twX, TERMINAL_Y - 22, 18, TERMINAL_H + 22)
+  ctx.fillRect(twX, 6, 18, TERMINAL_Y + TERMINAL_H - 6)
   ctx.fillStyle = C.terminalWin
-  ctx.fillRect(twX + 2, TERMINAL_Y - 18, 14, 10)   // tower cab window
+  ctx.fillRect(twX + 2, 8, 14, 10)   // tower cab window above road
 }
 
 function drawGateJetways(ctx: CanvasRenderingContext2D): void {

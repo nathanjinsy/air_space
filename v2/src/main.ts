@@ -3,6 +3,8 @@ import { createGameLoop } from './game/GameLoop'
 import { getAirportCanvas } from './render/AirportRenderer'
 import { renderAircraft } from './render/AircraftRenderer'
 import { renderVehicles } from './render/VehicleRenderer'
+import { renderRoadVehicles } from './render/RoadVehicleRenderer'
+import { getRoadVehicles } from './game/RoadVehicles'
 import { renderUI } from './render/UIRenderer'
 import { getPanelElements, updateSidePanel } from './render/SidePanel'
 import { setupInput } from './render/InputHandler'
@@ -47,6 +49,9 @@ const loop = createGameLoop((dt) => {
 
   // Draw airport background
   ctx.drawImage(airportBg, 0, 0)
+
+  // Draw road vehicles on the access road (north)
+  renderRoadVehicles(ctx, getRoadVehicles())
 
   // Draw ground vehicles (below aircraft)
   renderVehicles(ctx, state.vehicles)
