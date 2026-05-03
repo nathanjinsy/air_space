@@ -82,39 +82,39 @@ function isUpperRunway(runway: Runway): boolean {
 }
 
 /**
- * Upper runway (09R/27L): vacate directly north to Taxiway Alpha.
- * Lower runway (09L/27R): vacate south to Taxiway Bravo, then use the
- * end-connector taxiway (left or right side) to reach Taxiway Alpha —
- * never crossing the upper runway or grass.
+ * Lower runway (09L/27R): vacate directly south to Taxiway Bravo (near terminal).
+ * Upper runway (09R/27L): vacate north to Taxiway Alpha, then use the
+ * end-connector taxiway to reach Taxiway Bravo — never crossing grass or lower runway.
  */
 export function vacatePath(runway: Runway, fromRight: boolean): Point[] {
   const exitX = fromRight
     ? RWY_RIGHT_X - (RWY_RIGHT_X - RWY_LEFT_X) * 0.25  // 75 % mark
     : RWY_LEFT_X  + (RWY_RIGHT_X - RWY_LEFT_X) * 0.25  // 25 % mark
 
-  if (isUpperRunway(runway)) {
+  if (!isUpperRunway(runway)) {
+    // Short path: exit south directly to Bravo (terminal side)
     return [
-      { x: exitX,             y: runway.centerY },
-      { x: exitX,             y: ALPHA_Y },
+      { x: exitX, y: runway.centerY },
+      { x: exitX, y: BRAVO_Y },
     ]
   }
 
-  // Lower runway: south → Bravo → connector → Alpha
+  // Upper runway: north → Alpha → connector → Bravo
   const connX = fromRight ? CONNECTOR_RIGHT_X : CONNECTOR_LEFT_X
   return [
     { x: exitX,  y: runway.centerY },
-    { x: exitX,  y: BRAVO_Y },
-    { x: connX,  y: BRAVO_Y },
+    { x: exitX,  y: ALPHA_Y },
     { x: connX,  y: ALPHA_Y },
+    { x: connX,  y: BRAVO_Y },
   ]
 }
 
 /**
- * X position where the plane arrives at Taxiway Alpha after vacating.
+ * X position where the plane arrives at Taxiway Bravo after vacating.
  * Used by Aircraft.ts to pick the nearest gate.
  */
 export function vacateArrivalX(runway: Runway, fromRight: boolean): number {
-  if (isUpperRunway(runway)) {
+  if (!isUpperRunway(runway)) {
     return fromRight
       ? RWY_RIGHT_X - (RWY_RIGHT_X - RWY_LEFT_X) * 0.25
       : RWY_LEFT_X  + (RWY_RIGHT_X - RWY_LEFT_X) * 0.25
@@ -126,12 +126,12 @@ export function vacateArrivalX(runway: Runway, fromRight: boolean): number {
 // Taxi paths — taxiway waypoints to/from gates
 // ---------------------------------------------------------------------------
 
-/** Taxiway centerline Y — always Taxiway Alpha (nearest to terminal). */
+/** Taxiway centerline Y — Taxiway Bravo (nearest to terminal, south side). */
 function taxiYForRunway(_runway: Runway): number {
-  return TAXIWAY_ALPHA_Y + TAXIWAY_H / 2
+  return TAXIWAY_BRAVO_Y + TAXIWAY_H / 2
 }
 
-/** Gate apron Y (south face of terminal) */
+/** Gate apron Y (north face of terminal) */
 const APRON_CENTER_Y = GATE_Y
 
 export function taxiPathToGate(vacateEnd: Point, gate: Gate, runway: Runway): Point[] {
@@ -148,24 +148,24 @@ export function taxiPathToRunway(gate: Gate, runway: Runway, fromRight: boolean)
     ? runway.thresholdRight.x - HOLD_SHORT_OFFSET
     : runway.thresholdLeft.x + HOLD_SHORT_OFFSET
 
-  if (isUpperRunway(runway)) {
-    // Gate → Alpha → hold-short → upper runway
+  if (!isUpperRunway(runway)) {
+    // Lower runway: gate → Bravo → hold-short → lower runway (short path)
     return [
       { x: gate.position.x, y: APRON_CENTER_Y },
-      { x: gate.position.x, y: ALPHA_Y },
-      { x: holdX,           y: ALPHA_Y },
+      { x: gate.position.x, y: BRAVO_Y },
+      { x: holdX,           y: BRAVO_Y },
       { x: holdX,           y: runway.centerY },
     ]
   }
 
-  // Lower runway: gate → Alpha → connector → Bravo → hold-short → lower runway
+  // Upper runway: gate → Bravo → connector → Alpha → hold-short → upper runway
   const connX = fromRight ? CONNECTOR_RIGHT_X : CONNECTOR_LEFT_X
   return [
     { x: gate.position.x, y: APRON_CENTER_Y },
-    { x: gate.position.x, y: ALPHA_Y },
-    { x: connX,           y: ALPHA_Y },
+    { x: gate.position.x, y: BRAVO_Y },
     { x: connX,           y: BRAVO_Y },
-    { x: holdX,           y: BRAVO_Y },
+    { x: connX,           y: ALPHA_Y },
+    { x: holdX,           y: ALPHA_Y },
     { x: holdX,           y: runway.centerY },
   ]
 }

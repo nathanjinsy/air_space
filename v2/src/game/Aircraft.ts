@@ -2,8 +2,8 @@ import type { Aircraft, Point, Runway, GameState } from '../types'
 import {
   APPROACH_SPEED, TAXI_SPEED, TAKEOFF_SPEED,
   LANDING_DECEL, TURN_SPEED_DEG, TAXI_TURN_SPEED_DEG, WAYPOINT_REACH_PX,
-  BOARDING_TIME_MS, SCORE_LAND, SCORE_TAKEOFF, SCORE_GOAROUND,
-  TAXIWAY_ALPHA_Y, TAXIWAY_H, CANVAS_W, MARGIN_X,
+  BOARDING_TIME_MS, SCORE_LAND, SCORE_TAKEOFF,
+  TAXIWAY_BRAVO_Y, TAXIWAY_H,
 } from '../constants'
 import {
   vacatePath, vacateArrivalX, taxiPathToGate, taxiPathToRunway,
@@ -112,25 +112,25 @@ export function updateAircraft(ac: Aircraft, dt: number, state: GameState): numb
       break
 
     case 'pushing_back': {
-      // Move backward (opposite to current heading) until reaching Taxiway Alpha
+      // Move backward (opposite to current heading) until reaching Taxiway Bravo
       movePushback(ac, dt)
-      const alphaY = TAXIWAY_ALPHA_Y + TAXIWAY_H / 2
-      if (ac.y >= alphaY) {
-        ac.y = alphaY
+      const bravoY = TAXIWAY_BRAVO_Y + TAXIWAY_H / 2
+      if (ac.y <= bravoY) {
+        ac.y = bravoY
         ac.phase = 'taxiing_to_runway'
         ac.speed = TAXI_SPEED
         const runway = findRunwayById(state.runways, ac.assignedRunway ?? '')
         const gate = ac.assignedGate ? findGateById(state.gates, ac.assignedGate) : undefined
         if (runway && gate) {
-          // taxiPathToRunway starts from gate pos → alpha; we're already at alpha
-          // so skip the first two waypoints (gate-pos and alpha-at-gate-x)
+          // taxiPathToRunway starts from gate pos → bravo; we're already at bravo
+          // so skip the first two waypoints (gate-pos and bravo-at-gate-x)
           ac.waypoints = taxiPathToRunway(gate, runway, ac.fromRight).slice(2)
         } else if (runway) {
           const holdX = ac.fromRight
             ? runway.thresholdRight.x - 20
             : runway.thresholdLeft.x + 20
           ac.waypoints = [
-            { x: holdX, y: alphaY },
+            { x: holdX, y: bravoY },
             { x: holdX, y: runway.centerY },
           ]
         }
@@ -257,9 +257,12 @@ export function assignRunway(ac: Aircraft, runway: Runway, _state: GameState): v
   runway.occupiedBy = ac.id
   ac.phase = 'cleared_to_land'
 
-  // Fly directly to the threshold — no intermediate overshoot waypoint
-  const threshold = ac.fromRight ? runway.thresholdRight : runway.thresholdLeft
-  ac.waypoints = [{ x: threshold.x, y: runway.centerY }]
+  // Aim for the runway midpoint, not the near threshold.
+  // The midpoint is always ahead of an approaching plane regardless of click timing:
+  // east-approachers (x < 70) → midX=600 is east ✓
+  // west-approachers (x > 1130) → midX=600 is west ✓
+  const midX = (runway.thresholdLeft.x + runway.thresholdRight.x) / 2
+  ac.waypoints = [{ x: midX, y: runway.centerY }]
 }
 
 export function clearForTakeoff(ac: Aircraft, state: GameState): void {

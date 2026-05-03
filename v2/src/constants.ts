@@ -5,60 +5,52 @@ export const CANVAS_W = 1200
 export const CANVAS_H = 500
 
 // ---------------------------------------------------------------------------
-// Airport layout (all in canvas pixels)
+// Airport layout — KPWK style: terminal + hangars on SOUTH side
+// Derives top-to-bottom from TAXIWAY_ALPHA_Y (north perimeter)
 // ---------------------------------------------------------------------------
-export const MARGIN_X = 40          // left/right grass border
+export const MARGIN_X = 40
 export const RUNWAY_LENGTH = CANVAS_W - MARGIN_X * 2
 
-// Terminal
-export const TERMINAL_Y = 52
+export const TAXIWAY_H = 26
+export const RWY_H     = 56
+
+// Taxiway Alpha — north perimeter taxiway (far side, no terminal)
+export const TAXIWAY_ALPHA_Y    = 80
+// Runway 09R/27L (upper)
+export const RWY_UPPER_Y        = TAXIWAY_ALPHA_Y + TAXIWAY_H        // 106
+export const RWY_UPPER_CENTER_Y = RWY_UPPER_Y + RWY_H / 2            // 134
+// Grass strip between runways
+export const GRASS_STRIP_H      = 36
+export const GRASS_STRIP_Y      = RWY_UPPER_Y + RWY_H                // 162
+// Runway 09L/27R (lower)
+export const RWY_LOWER_Y        = GRASS_STRIP_Y + GRASS_STRIP_H      // 198
+export const RWY_LOWER_CENTER_Y = RWY_LOWER_Y + RWY_H / 2            // 226
+// Taxiway Bravo — south perimeter taxiway (near terminal side)
+export const TAXIWAY_BRAVO_Y    = RWY_LOWER_Y + RWY_H                // 254
+
+// Apron — between Taxiway Bravo and terminal north face
+export const APRON_H  = 20
+export const APRON_Y  = TAXIWAY_BRAVO_Y + TAXIWAY_H                  // 280
+// Terminal building — south side, north face toward runways
 export const TERMINAL_H = 80
+export const TERMINAL_Y = APRON_Y + APRON_H                          // 300
 export const TERMINAL_X = MARGIN_X
 export const TERMINAL_W = RUNWAY_LENGTH
 
-// Apron (concrete behind gates)
-export const APRON_Y = TERMINAL_Y + TERMINAL_H
-export const APRON_H = 20
+// Hangar row — south of terminal (KPWK has large hangar complexes here)
+export const HANGAR_AREA_H = 60
+export const HANGAR_AREA_Y = TERMINAL_Y + TERMINAL_H                 // 380
 
-// Taxiway Alpha (north of runways, between terminal apron and RWY 09R)
-export const TAXIWAY_ALPHA_Y = APRON_Y + APRON_H
-export const TAXIWAY_H = 26
+// Access road — south of hangars (landside)
+export const ROAD_VERGE_H  = 6
+export const ROAD_DRIVE_H  = CANVAS_H - HANGAR_AREA_Y - HANGAR_AREA_H - ROAD_VERGE_H // 54
+export const ROAD_START_Y  = HANGAR_AREA_Y + HANGAR_AREA_H           // 440
+export const ROAD_UPPER_Y  = ROAD_START_Y + Math.round(ROAD_DRIVE_H * 0.25) // 454
+export const ROAD_LOWER_Y  = ROAD_START_Y + Math.round(ROAD_DRIVE_H * 0.75) // 481
 
-// Runway 09R/27L (upper)
-export const RWY_UPPER_Y = TAXIWAY_ALPHA_Y + TAXIWAY_H
-export const RWY_H = 56
-export const RWY_UPPER_CENTER_Y = RWY_UPPER_Y + RWY_H / 2
-
-// Grass strip between runways
-export const GRASS_STRIP_Y = RWY_UPPER_Y + RWY_H
-export const GRASS_STRIP_H = 36
-
-// Runway 09L/27R (lower)
-export const RWY_LOWER_Y = GRASS_STRIP_Y + GRASS_STRIP_H
-export const RWY_LOWER_CENTER_Y = RWY_LOWER_Y + RWY_H / 2
-
-// Taxiway Bravo (south of lower runway)
-export const TAXIWAY_BRAVO_Y = RWY_LOWER_Y + RWY_H
-
-// Cargo area (south of Taxiway Bravo, directly connected)
-export const CARGO_TAX_Y        = TAXIWAY_BRAVO_Y + TAXIWAY_H
-export const CARGO_TAX_H        = 20
-export const CARGO_APRON_Y      = CARGO_TAX_Y + CARGO_TAX_H
-export const CARGO_APRON_H      = 40
-export const CARGO_BLDG_Y       = CARGO_APRON_Y + CARGO_APRON_H
-export const CARGO_BLDG_H       = 52
-export const CARGO_STAND_COUNT  = 3
-
-// Access road (north face of terminal — y=0 to TERMINAL_Y)
-export const ROAD_VERGE_H    = 6                                   // grass verge at very top
-export const ROAD_SIDEWALK_H = 5                                   // curb at terminal face
-export const ROAD_DRIVE_H    = TERMINAL_Y - ROAD_VERGE_H - ROAD_SIDEWALK_H
-export const ROAD_UPPER_Y    = Math.round(ROAD_VERGE_H + ROAD_DRIVE_H * 0.25) // arriving lane
-export const ROAD_LOWER_Y    = Math.round(ROAD_VERGE_H + ROAD_DRIVE_H * 0.75) // departing lane
-
-// Gates (3 evenly spaced along terminal south face)
-export const GATE_COUNT = 3
-export const GATE_Y = APRON_Y + APRON_H / 2   // center of apron
+// Gates (3 evenly spaced, on apron between Bravo and terminal)
+export const GATE_COUNT   = 3
+export const GATE_Y       = APRON_Y + APRON_H / 2                    // 290
 export const GATE_SPACING = RUNWAY_LENGTH / (GATE_COUNT + 1)
 
 // Runway thresholds (left = 09 end, right = 27 end)
@@ -115,17 +107,24 @@ export const CRASH_DIST_PX = 24      // planes closer than this = crash
 export const PLANE_LENGTH = 36       // fuselage length px
 export const PLANE_WINGSPAN = 30     // total wingspan px
 
-// Livery palette — regional carriers (muted tones)
+// Airport identity
+export const AIRPORT_ICAO = 'KPWK'
+export const AIRPORT_NAME = 'CHICAGO EXECUTIVE'
+export const AIRPORT_CITY = 'WHEELING, IL'
+
+// Livery palette — corporate / charter tones
 export const LIVERY_COLORS = [
   '#3a5a8a', '#8a3a3a', '#2a6a4a',
   '#7a5a2a', '#6a3a6a', '#3a6a6a',
 ]
 
-// Callsign pool — regional carriers
+// Callsign pool — KPWK traffic: NetJets, FlexJet, corporate, GA N-numbers
 export const CALLSIGNS = [
-  'SKW491','SKW228','QXE201','QXE509','RPA342','RPA118',
-  'ASH603','ASH714','ENY334','ENY821','CPZ156','CPZ482',
-  'PDT293','PDT607','JIA449','JIA072','GJS814','SIL261',
+  'EJA412','EJA788','EJA031','EJA556',   // NetJets
+  'LXJ202','LXJ594','LXJ871',             // FlexJet
+  'NJA503','NJA271',                       // NetJets Air
+  'N231PW','N7742G','N4521F',             // GA N-numbers
+  'N882PK','N601EX','N45WKP','N3317K',
 ]
 
 // ---------------------------------------------------------------------------

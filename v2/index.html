@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Air Space v2 — Airport ATC</title>
+  <title>KPWK — Chicago Executive Airport ATC</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -145,6 +145,20 @@
 
     #gate-dots { display: flex; gap: 8px; flex-wrap: wrap; }
 
+    #airport-header {
+      padding: 10px 12px 8px;
+      border-bottom: 1px solid #2a2a2a;
+    }
+    #airport-header .icao {
+      font-size: 20px; font-weight: bold; letter-spacing: 4px; color: #707070;
+    }
+    #airport-header .apt-name {
+      font-size: 9px; letter-spacing: 2px; color: #484848; margin-top: 2px;
+    }
+    #airport-header .apt-city {
+      font-size: 8px; letter-spacing: 1px; color: #383838; margin-top: 1px;
+    }
+
     .gate-dot {
       width: 28px;
       height: 28px;
@@ -167,6 +181,11 @@
       <canvas id="airport"></canvas>
     </div>
     <div id="panel">
+      <div id="airport-header">
+        <div class="icao">KPWK</div>
+        <div class="apt-name">CHICAGO EXECUTIVE</div>
+        <div class="apt-city">WHEELING, IL</div>
+      </div>
       <div class="panel-section">
         <h2>Selected</h2>
         <div id="selected-info">

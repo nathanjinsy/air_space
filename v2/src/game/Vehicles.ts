@@ -1,7 +1,7 @@
 import type { Vehicle } from '../types'
 import {
   GATE_Y, RWY_LEFT_X, RWY_RIGHT_X,
-  CARGO_APRON_Y, CARGO_APRON_H, MARGIN_X, CANVAS_W,
+  HANGAR_AREA_Y, HANGAR_AREA_H, MARGIN_X, CANVAS_W,
 } from '../constants'
 
 // ---------------------------------------------------------------------------
@@ -9,8 +9,8 @@ import {
 // ---------------------------------------------------------------------------
 
 export function makeVehicles(): Vehicle[] {
-  const apronY = GATE_Y                             // terminal apron centerline
-  const cargoY = CARGO_APRON_Y + CARGO_APRON_H / 2 // cargo apron centerline
+  const apronY  = GATE_Y                              // terminal apron centerline
+  const hangarY = HANGAR_AREA_Y + HANGAR_AREA_H / 2  // hangar area centerline
   const midX   = (RWY_LEFT_X + RWY_RIGHT_X) / 2
 
   return [
@@ -46,17 +46,17 @@ export function makeVehicles(): Vehicle[] {
       color: '#4a7a4a',
     },
 
-    // — Cargo apron: two tugs —
+    // — Hangar row: two tugs moving in front of hangars —
     {
       id: 'veh-tg1', type: 'tug',
-      x: MARGIN_X + 120, y: cargoY,
+      x: MARGIN_X + 120, y: hangarY,
       heading: 90, speed: 10,
       patrolMin: MARGIN_X + 60, patrolMax: CANVAS_W / 2 - 30,
       color: '#8a5a3a',
     },
     {
       id: 'veh-tg2', type: 'tug',
-      x: CANVAS_W - MARGIN_X - 120, y: cargoY,
+      x: CANVAS_W - MARGIN_X - 120, y: hangarY,
       heading: 270, speed: 10,
       patrolMin: CANVAS_W / 2 + 30, patrolMax: CANVAS_W - MARGIN_X - 60,
       color: '#8a5a3a',

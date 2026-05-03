@@ -1,6 +1,6 @@
 import {
   CANVAS_W, CANVAS_H, MARGIN_X, RUNWAY_LENGTH,
-  ROAD_VERGE_H, ROAD_SIDEWALK_H, ROAD_DRIVE_H, ROAD_UPPER_Y, ROAD_LOWER_Y,
+  ROAD_VERGE_H, ROAD_DRIVE_H, ROAD_START_Y, ROAD_UPPER_Y, ROAD_LOWER_Y,
   TERMINAL_X, TERMINAL_Y, TERMINAL_W, TERMINAL_H,
   APRON_Y, APRON_H,
   TAXIWAY_ALPHA_Y, TAXIWAY_H, TAXIWAY_BRAVO_Y,
@@ -8,8 +8,7 @@ import {
   GRASS_STRIP_Y, GRASS_STRIP_H,
   RWY_LEFT_X, RWY_RIGHT_X, HOLD_SHORT_OFFSET,
   CONNECTOR_LEFT_X, CONNECTOR_RIGHT_X,
-  CARGO_TAX_Y, CARGO_TAX_H, CARGO_APRON_Y, CARGO_APRON_H,
-  CARGO_BLDG_Y, CARGO_BLDG_H, CARGO_STAND_COUNT,
+  HANGAR_AREA_Y, HANGAR_AREA_H,
   GATE_COUNT, GATE_SPACING, GATE_Y,
   C,
 } from '../constants'
@@ -37,50 +36,50 @@ function drawAirport(ctx: CanvasRenderingContext2D): void {
   ctx.fillStyle = C.grass
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
 
-  // 2. Tree clusters (seeded pseudo-random)
+  // 2. Tree clusters (north open field + margins + grass strip)
   drawTrees(ctx)
 
-  // 2b. Access road along north face of terminal (landside)
-  drawAccessRoad(ctx)
-
-  // 3. Apron (concrete behind terminal)
-  ctx.fillStyle = C.apron
-  ctx.fillRect(TERMINAL_X, APRON_Y, TERMINAL_W, APRON_H)
-
-  // 4. Terminal building
-  drawTerminal(ctx)
-
-  // 5. Gate jetways
-  drawGateJetways(ctx)
-
-  // 6. Taxiway Alpha (north)
+  // 3. Taxiway Alpha (north perimeter — far from terminal)
   drawTaxiway(ctx, TAXIWAY_ALPHA_Y)
 
-  // 7. Taxiway Bravo (south)
+  // 4. Taxiway Bravo (south perimeter — near terminal)
   drawTaxiway(ctx, TAXIWAY_BRAVO_Y)
 
-  // 8. Grass strip between runways
+  // 5. Grass strip between runways
   ctx.fillStyle = C.grass
   ctx.fillRect(MARGIN_X, GRASS_STRIP_Y, RUNWAY_LENGTH, GRASS_STRIP_H)
 
-  // 9. Runways
+  // 6. Runways
   drawRunway(ctx, RWY_UPPER_Y, '09R', '27L')
   drawRunway(ctx, RWY_LOWER_Y, '09L', '27R')
 
-  // 10. End-connector taxiways (painted over grass/runway ends so no grass crossing)
+  // 7. End-connector taxiways (links Alpha ↔ Bravo on each end)
   drawConnectors(ctx)
 
-  // 11. Taxiway network centerline (solid, smooth curves at all junctions)
+  // 8. Taxiway network centerline
   drawTaxiwayNetwork(ctx)
 
-  // 12. Runway entry/exit centerline connections (lead-on curves + lead-off lines)
+  // 9. Runway entry/exit centerline connections
   drawRunwayConnections(ctx)
 
-  // 13. Cargo/GA area (south end)
-  drawCargoArea(ctx)
-
-  // 14. Stopbar markings at each taxiway-runway entry point (static dim red paint)
+  // 10. Stopbar markings
   drawStopbars(ctx)
+
+  // 11. Apron (concrete between Taxiway Bravo and terminal north face)
+  ctx.fillStyle = C.apron
+  ctx.fillRect(TERMINAL_X, APRON_Y, TERMINAL_W, APRON_H)
+
+  // 12. Terminal building (south side, north face toward runways)
+  drawTerminal(ctx)
+
+  // 13. Gate boarding stairs (face north toward apron)
+  drawGateJetways(ctx)
+
+  // 14. Hangar row (south of terminal — KPWK style)
+  drawHangars(ctx)
+
+  // 15. Access road (landside, south of hangars)
+  drawAccessRoad(ctx)
 }
 
 // ---------------------------------------------------------------------------
@@ -95,13 +94,12 @@ function drawTrees(ctx: CanvasRenderingContext2D): void {
 
   ctx.fillStyle = C.grassDark
 
-  // Border clusters: top strip, bottom strip, left/right ends
+  // North open field (large), left/right margins, grass strip between runways
   const treeSections = [
-    { x0: 0, y0: 0, x1: CANVAS_W, y1: TERMINAL_Y - 2, count: 30 },
-    { x0: 0, y0: TAXIWAY_BRAVO_Y + TAXIWAY_H + 4, x1: CANVAS_W, y1: CANVAS_H, count: 30 },
-    { x0: 0, y0: TERMINAL_Y, x1: MARGIN_X - 4, y1: TAXIWAY_BRAVO_Y + TAXIWAY_H, count: 12 },
-    { x0: CANVAS_W - MARGIN_X + 4, y0: TERMINAL_Y, x1: CANVAS_W, y1: TAXIWAY_BRAVO_Y + TAXIWAY_H, count: 12 },
-    { x0: MARGIN_X, y0: GRASS_STRIP_Y + 4, x1: CANVAS_W - MARGIN_X, y1: GRASS_STRIP_Y + GRASS_STRIP_H - 4, count: 18 },
+    { x0: 0,           y0: 0,                       x1: CANVAS_W,            y1: TAXIWAY_ALPHA_Y - 2,          count: 48 },
+    { x0: 0,           y0: TAXIWAY_ALPHA_Y,          x1: MARGIN_X - 4,        y1: TAXIWAY_BRAVO_Y + TAXIWAY_H,  count: 12 },
+    { x0: CANVAS_W - MARGIN_X + 4, y0: TAXIWAY_ALPHA_Y, x1: CANVAS_W,        y1: TAXIWAY_BRAVO_Y + TAXIWAY_H,  count: 12 },
+    { x0: MARGIN_X,   y0: GRASS_STRIP_Y + 4,         x1: CANVAS_W - MARGIN_X, y1: GRASS_STRIP_Y + GRASS_STRIP_H - 4, count: 18 },
   ]
 
   for (const s of treeSections) {
@@ -118,15 +116,11 @@ function drawTrees(ctx: CanvasRenderingContext2D): void {
 
 function drawAccessRoad(ctx: CanvasRenderingContext2D): void {
   const medianH = 4
-  const medianY = ROAD_VERGE_H + Math.round((ROAD_DRIVE_H - medianH) / 2)
-
-  // Grass verge at top edge
-  ctx.fillStyle = C.grass
-  ctx.fillRect(0, 0, CANVAS_W, ROAD_VERGE_H)
+  const medianY = ROAD_START_Y + Math.round((ROAD_DRIVE_H - medianH) / 2)
 
   // Road surface
   ctx.fillStyle = '#383838'
-  ctx.fillRect(0, ROAD_VERGE_H, CANVAS_W, ROAD_DRIVE_H)
+  ctx.fillRect(0, ROAD_START_Y, CANVAS_W, ROAD_DRIVE_H)
 
   // Lane guide lines (dashed white) at each lane centre
   ctx.strokeStyle = 'rgba(230,230,200,0.65)'
@@ -142,9 +136,9 @@ function drawAccessRoad(ctx: CanvasRenderingContext2D): void {
   ctx.fillStyle = '#c8960a'
   ctx.fillRect(MARGIN_X, medianY, CANVAS_W - MARGIN_X * 2, medianH)
 
-  // Sidewalk / kerb at terminal face
-  ctx.fillStyle = '#a09880'
-  ctx.fillRect(0, TERMINAL_Y - ROAD_SIDEWALK_H, CANVAS_W, ROAD_SIDEWALK_H)
+  // Grass verge at very bottom edge
+  ctx.fillStyle = C.grass
+  ctx.fillRect(0, ROAD_START_Y + ROAD_DRIVE_H, CANVAS_W, ROAD_VERGE_H)
 }
 
 function drawTerminal(ctx: CanvasRenderingContext2D): void {
@@ -152,45 +146,57 @@ function drawTerminal(ctx: CanvasRenderingContext2D): void {
   ctx.fillStyle = C.terminal
   ctx.fillRect(TERMINAL_X, TERMINAL_Y, TERMINAL_W, TERMINAL_H)
 
-  // Roof — lighter band across top
+  // Roof band at north face (the side facing the runways)
   ctx.fillStyle = C.terminalRoof
   ctx.fillRect(TERMINAL_X, TERMINAL_Y, TERMINAL_W, 12)
 
-  // Simple single row of windows (regional = one level)
+  // Window row near north face
   ctx.fillStyle = C.terminalWin
   const winW = 8; const winH = 6; const winGap = 22
-  const winY = TERMINAL_Y + 26
+  const winY = TERMINAL_Y + 18
   for (let wx = TERMINAL_X + 20; wx < TERMINAL_X + TERMINAL_W - 20; wx += winGap) {
     ctx.fillRect(wx, winY, winW, winH)
   }
 
-  // Small control tower on the right end — rises from y=0 through the road
+  // Airport identity on facade (south-facing, visible from road)
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.font = 'bold 7px "Courier New"'
+  ctx.fillStyle = 'rgba(200,185,170,0.80)'
+  ctx.fillText('CHICAGO EXECUTIVE AIRPORT', TERMINAL_X + TERMINAL_W / 2, TERMINAL_Y + 50)
+  ctx.font = '6px "Courier New"'
+  ctx.fillStyle = 'rgba(170,155,140,0.65)'
+  ctx.fillText('KPWK  ·  WHEELING, IL', TERMINAL_X + TERMINAL_W / 2, TERMINAL_Y + 61)
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'alphabetic'
+
+  // Control tower — right end, rises 32px above terminal north face into the apron area
   const twX = TERMINAL_X + TERMINAL_W - 28
   ctx.fillStyle = '#9a8a78'
-  ctx.fillRect(twX, 6, 18, TERMINAL_Y + TERMINAL_H - 6)
+  ctx.fillRect(twX, TERMINAL_Y - 32, 18, TERMINAL_H + 32)
   ctx.fillStyle = C.terminalWin
-  ctx.fillRect(twX + 2, 8, 14, 10)   // tower cab window above road
+  ctx.fillRect(twX + 2, TERMINAL_Y - 30, 14, 10)  // tower cab windows
 }
 
 function drawGateJetways(ctx: CanvasRenderingContext2D): void {
   for (let i = 0; i < GATE_COUNT; i++) {
     const gx = MARGIN_X + GATE_SPACING * (i + 1)
 
-    // Boarding stairs (angled ramp — regional airports use apron stairs)
+    // Boarding stairs extend from terminal NORTH face toward apron (northward = decreasing y)
     ctx.fillStyle = C.jetway
     ctx.beginPath()
-    ctx.moveTo(gx - 4, TERMINAL_Y + TERMINAL_H)
-    ctx.lineTo(gx + 4, TERMINAL_Y + TERMINAL_H)
-    ctx.lineTo(gx + 8, GATE_Y + 6)
-    ctx.lineTo(gx - 8, GATE_Y + 6)
+    ctx.moveTo(gx - 4, TERMINAL_Y)
+    ctx.lineTo(gx + 4, TERMINAL_Y)
+    ctx.lineTo(gx + 8, GATE_Y + 4)
+    ctx.lineTo(gx - 8, GATE_Y + 4)
     ctx.closePath()
     ctx.fill()
 
-    // Step lines on the ramp
+    // Step lines
     ctx.strokeStyle = '#8a7a6a'
     ctx.lineWidth = 1
     for (let s = 1; s <= 3; s++) {
-      const sy = TERMINAL_Y + TERMINAL_H + (APRON_H * s / 4)
+      const sy = TERMINAL_Y - (APRON_H * s / 4)
       ctx.beginPath()
       ctx.moveTo(gx - 3 - s, sy); ctx.lineTo(gx + 3 + s, sy)
       ctx.stroke()
@@ -276,62 +282,56 @@ function drawRunway(
   ctx.setLineDash([])
 }
 
-function drawCargoArea(ctx: CanvasRenderingContext2D): void {
-  const x = TERMINAL_X
-  const w = RUNWAY_LENGTH
+function drawHangars(ctx: CanvasRenderingContext2D): void {
+  const y = HANGAR_AREA_Y
+  const h = HANGAR_AREA_H
+  const totalW = RUNWAY_LENGTH
+  const x0 = TERMINAL_X
 
-  // GA taxiway strip
-  ctx.fillStyle = C.taxiway
-  ctx.fillRect(x, CARGO_TAX_Y, w, CARGO_TAX_H)
-  ctx.strokeStyle = C.taxiCenter
-  ctx.lineWidth = 1.5
-  ctx.setLineDash([])
-  ctx.beginPath()
-  ctx.moveTo(x, CARGO_TAX_Y + CARGO_TAX_H / 2)
-  ctx.lineTo(x + w, CARGO_TAX_Y + CARGO_TAX_H / 2)
-  ctx.stroke()
+  // Six hangars of varying widths — KPWK-style mixed corporate/GA hangars
+  const sizes = [210, 160, 200, 170, 200, 180]   // widths in px (sum ≈ 1120)
+  const gap   = Math.floor((totalW - sizes.reduce((a, b) => a + b, 0)) / (sizes.length - 1))
 
-  // GA ramp (concrete)
-  ctx.fillStyle = C.apron
-  ctx.fillRect(x, CARGO_APRON_Y, w, CARGO_APRON_H)
-  ctx.font = 'bold 9px "Courier New"'
-  ctx.fillStyle = '#666'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText('GENERAL AVIATION RAMP', x + w / 2, CARGO_APRON_Y + CARGO_APRON_H / 2)
-  ctx.textAlign = 'left'
-  ctx.textBaseline = 'alphabetic'
+  const bodyColors = ['#686858', '#6a6050', '#605a50', '#6a6458', '#585860', '#626058']
+  const roofColors = ['#484840', '#4a4238', '#403c38', '#4a4640', '#383840', '#424040']
 
-  // FBO building (small, left side)
-  const fboW = 140; const fboH = CARGO_BLDG_H * 0.6
-  const fboX = x + 30
-  const fboY = CARGO_BLDG_Y + (CARGO_BLDG_H - fboH) / 2
-  ctx.fillStyle = '#7a8a7a'
-  ctx.fillRect(fboX, fboY, fboW, fboH)
-  ctx.fillStyle = '#5a6a5a'
-  ctx.fillRect(fboX, fboY, fboW, 8)
-  ctx.font = 'bold 8px "Courier New"'
-  ctx.fillStyle = '#ccc'
-  ctx.textAlign = 'center'
-  ctx.fillText('FBO', fboX + fboW / 2, fboY + fboH / 2 + 3)
+  let hx = x0
+  for (let i = 0; i < sizes.length; i++) {
+    const hw = sizes[i]
 
-  // Fuel depot (right side — two small tanks)
-  const tankX = x + w - 100
-  const tankY = CARGO_BLDG_Y + 6
+    // Hangar body
+    ctx.fillStyle = bodyColors[i]
+    ctx.fillRect(hx, y, hw, h)
+
+    // Darker roof ridge along the north edge (faces apron/runway)
+    ctx.fillStyle = roofColors[i]
+    ctx.fillRect(hx, y, hw, 7)
+
+    // Large hangar door (double door, north-facing)
+    ctx.strokeStyle = '#3a3830'
+    ctx.lineWidth = 1
+    const doorW = hw - 12
+    const doorH = h - 14
+    ctx.strokeRect(hx + 6, y + 9, doorW, doorH)
+    ctx.beginPath()
+    ctx.moveTo(hx + hw / 2, y + 9)
+    ctx.lineTo(hx + hw / 2, y + 9 + doorH)
+    ctx.stroke()
+
+    hx += hw + gap
+  }
+
+  // Fuel station between first two hangars (right of gap)
+  const fuelX = x0 + sizes[0] + Math.floor(gap * 0.3)
   for (let t = 0; t < 2; t++) {
     ctx.fillStyle = '#5a6878'
     ctx.beginPath()
-    ctx.arc(tankX + t * 36, tankY + 16, 14, 0, Math.PI * 2)
+    ctx.arc(fuelX + t * 28, y + h - 14, 10, 0, Math.PI * 2)
     ctx.fill()
     ctx.strokeStyle = '#3a4858'
-    ctx.lineWidth = 1.5
+    ctx.lineWidth = 1
     ctx.stroke()
   }
-  ctx.font = '7px "Courier New"'
-  ctx.fillStyle = '#aaa'
-  ctx.textAlign = 'center'
-  ctx.fillText('FUEL', tankX + 18, tankY + 38)
-  ctx.textAlign = 'left'
 }
 
 function drawConnectors(ctx: CanvasRenderingContext2D): void {

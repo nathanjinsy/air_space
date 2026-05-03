@@ -56,6 +56,12 @@ function drawTopBar(ctx: CanvasRenderingContext2D, state: GameState): void {
     rx += 90
   }
 
+  // Airport identifier — right edge of top bar
+  ctx.textAlign = 'right'
+  ctx.fillStyle = '#606060'
+  ctx.font = 'bold 10px "Courier New"'
+  ctx.fillText('KPWK', CANVAS_W - 12, barH / 2)
+
   ctx.textAlign = 'left'
   ctx.textBaseline = 'alphabetic'
 }
